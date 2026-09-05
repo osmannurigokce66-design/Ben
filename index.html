@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Osman (Yapay Zeka) - Canlı Etkileşim Simulatorü</title>
+  <title>JARVIS - Gelişmiş Kişisel Yapay Zeka Asistanı</title>
   
+  <!-- Face-API kütüphanesi (Görsel ve yüz analizi için) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 
   <style>
@@ -12,230 +13,412 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: 'Orbitron', 'Segoe UI', Roboto, sans-serif;
     }
 
     body {
-      background-color: #0d0d0d;
-      color: #ffffff;
+      background-color: #050b14;
+      color: #00f0ff;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
     }
 
-    /* Ana Video ve Yapay Zeka Çerçevesi */
-    .ai-container {
+    /* Futurist Jarvis HUD Arka Planı */
+    .hud-container {
       position: relative;
-      width: 1000px;
-      height: 562px;
-      background-color: #1a1a1a;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
-      border: 1px solid #333;
+      width: 95vw;
+      height: 90vh;
+      border: 1px solid rgba(0, 240, 255, 0.3);
+      border-radius: 16px;
+      background: radial-gradient(circle at center, #0a192f 0%, #020c1b 100%);
+      box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
+      display: grid;
+      grid-template-columns: 320px 1fr 320px;
+      grid-template-rows: 60px 1fr 100px;
+      gap: 15px;
+      padding: 20px;
     }
 
-    /* Yapay Zeka Karakter Görseli (Görselinizdeki Osman) */
-    .ai-avatar {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: brightness(0.95);
-      transition: transform 0.1s ease;
-    }
-
-    /* Kamera / REC Katmanı */
-    .rec-indicator {
-      position: absolute;
-      top: 20px;
-      right: 25px;
+    /* Üst Başlık */
+    .header {
+      grid-column: 1 / -1;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      gap: 8px;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+      padding-bottom: 10px;
+    }
+
+    .title {
+      font-size: 22px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
       font-weight: bold;
-      color: #ff3b30;
-      font-size: 14px;
-      letter-spacing: 1px;
+      text-shadow: 0 0 10px #00f0ff;
     }
 
-    .rec-dot {
-      width: 10px;
-      height: 10px;
-      background-color: #ff3b30;
-      border-radius: 50%;
-      animation: blink 1s infinite alternate;
+    .status-badge {
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      background: rgba(255, 0, 85, 0.2);
+      border: 1px solid #ff0055;
+      color: #ff0055;
     }
 
-    @keyframes blink {
-      from { opacity: 1; }
-      to { opacity: 0.2; }
+    .status-badge.active {
+      background: rgba(0, 255, 136, 0.2);
+      border-color: #00ff88;
+      color: #00ff88;
     }
 
-    /* Sol Üst Başlık */
-    .header-title {
-      position: absolute;
-      top: 20px;
-      left: 25px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 18px;
-      font-weight: 500;
-      color: #e5e5e5;
-    }
-
-    .brain-icon {
-      width: 24px;
-      height: 24px;
-      fill: #8e8e93;
-    }
-
-    /* Alt Yazı & Ses Kaydı Alanı */
-    .subtitles-container {
-      position: absolute;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 85%;
-      text-align: center;
+    /* Sol Panel: Sistem Analizi */
+    .left-panel {
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 8px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.3);
       display: flex;
       flex-direction: column;
       gap: 12px;
-      z-index: 10;
+      font-size: 13px;
     }
 
-    .audio-log {
-      background: rgba(0, 0, 0, 0.6);
-      padding: 6px 16px;
-      border-radius: 20px;
-      display: inline-block;
-      margin: 0 auto;
-      font-size: 15px;
-      color: #d1d1d6;
-      backdrop-filter: blur(4px);
+    .metric-box {
+      background: rgba(0, 240, 255, 0.05);
+      padding: 10px;
+      border-left: 3px solid #00f0ff;
     }
 
-    .ai-speech {
-      font-size: 20px;
-      font-weight: 500;
-      color: #ffffff;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+    /* Orta Panel: Ana Görsel ve Ses Halkası */
+    .main-panel {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    /* Kamera Canvas Katmanı */
+    #webcamVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.5;
+    }
+
+    /* Jarvis Ark Reaktörü / Ses Görselleştirici */
+    .arc-reactor {
+      position: absolute;
+      width: 180px;
+      height: 180px;
+      border-radius: 50%;
+      border: 2px dashed #00f0ff;
+      animation: rotate 10s linear infinite;
+      box-shadow: 0 0 25px #00f0ff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      pointer-events: none;
+    }
+
+    .arc-inner {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #ffffff 0%, #00f0ff 70%);
+      box-shadow: 0 0 30px #00f0ff;
+      animation: pulse 2s ease-in-out infinite alternate;
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      from { transform: scale(0.85); opacity: 0.7; }
+      to { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* Sağ Panel: Diyalog ve Loglar */
+    .right-panel {
+      border: 1px solid rgba(0, 240, 255, 0.15);
+      border-radius: 8px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.3);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-box {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      font-size: 13px;
+      padding-right: 5px;
+    }
+
+    .message {
+      padding: 8px 12px;
+      border-radius: 6px;
       line-height: 1.4;
     }
 
-    /* Gizli Web Cam (Göz Takibi İçin Arka Planda Çalışır) */
-    #userWebcam {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      opacity: 0;
+    .message.user {
+      background: rgba(0, 240, 255, 0.15);
+      border-left: 2px solid #00f0ff;
+      align-self: flex-end;
     }
 
-    /* UI Çerçeve Çizgileri */
-    .frame-corner {
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
+    .message.jarvis {
+      background: rgba(255, 255, 255, 0.05);
+      border-left: 2px solid #00ff88;
+      color: #e0e0e0;
     }
 
-    .top-left { top: 15px; left: 15px; border-right: none; border-bottom: none; }
-    .bottom-right { bottom: 15px; right: 15px; border-left: none; border-top: none; }
+    /* Alt Panel: İzin Alma & Durum Metinleri */
+    .bottom-panel {
+      grid-column: 1 / -1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid rgba(0, 240, 255, 0.2);
+      padding-top: 10px;
+    }
+
+    .btn-init {
+      background: #00f0ff;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      transition: all 0.3s ease;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+    }
+
+    .btn-init:hover {
+      background: #00ff88;
+      box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
+    }
+
+    .live-caption {
+      font-size: 15px;
+      color: #fff;
+      font-style: italic;
+    }
   </style>
 </head>
 <body>
 
-  <div class="ai-container">
-    <div class="frame-corner top-left"></div>
-    <div class="frame-corner bottom-right"></div>
-
-    <div class="header-title">
-      <svg class="brain-icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.57 10.57 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
-      Osman (Yapay Zeka)
+  <div class="hud-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="title">JARVIS // AI ASİSTANİ</div>
+      <div id="statusBadge" class="status-badge">SİSTEM ÇEVRİM DIŞI</div>
     </div>
 
-    <div class="rec-indicator">
-      <div class="rec-dot"></div> REC
-    </div>
-
-    <img id="aiAvatar" class="ai-avatar" src="watermarked_img_13500142883147034392.png" alt="Osman AI">
-
-    <div class="subtitles-container">
-      <div id="audioLog" class="audio-log">[SES KAYDI: Dinleniyor...]</div>
-      <div id="aiSpeech" class="ai-speech">
-        Seni dinliyorum. Bize anlatmak istediğin her şeyi duymaya hazırım. Ne hissediyorsun?
+    <!-- Sol Panel: Analiz Verileri -->
+    <div class="left-panel">
+      <div class="metric-box">
+        <strong>GÖRSEL SENSÖR:</strong> <span id="visualStatus">Devre Dışı</span>
       </div>
+      <div class="metric-box">
+        <strong>SES SENSÖRÜ:</strong> <span id="audioStatus">Devre Dışı</span>
+      </div>
+      <div class="metric-box">
+        <strong>MİMİK / DUYGU:</strong> <span id="emotionStatus">Bekleniyor...</span>
+      </div>
+      <div class="metric-box">
+        <strong>SİSTEM YÜKÜ:</strong> NORMAL (%12)
+      </div>
+    </div>
+
+    <!-- Orta Panel: Kamera ve Görsel UI -->
+    <div class="main-panel">
+      <video id="webcamVideo" autoplay muted playsinline></video>
+      <div class="arc-reactor">
+        <div class="arc-inner"></div>
+      </div>
+    </div>
+
+    <!-- Sağ Panel: Sohbet ve Cevaplar -->
+    <div class="right-panel">
+      <div style="font-size: 12px; color: #888; border-bottom: 1px solid #333; padding-bottom: 4px;">DİYALOG LOGLARI</div>
+      <div id="chatBox" class="chat-box">
+        <div class="message jarvis">Sistem başlatılmaya hazır. Lütfen izinleri onaylayın.</div>
+      </div>
+    </div>
+
+    <!-- Alt Panel -->
+    <div class="bottom-panel">
+      <button id="startBtn" class="btn-init" onclick="initJarvis()">SİSTEMİ VE İZİNLERİ BAŞLAT</button>
+      <div id="liveCaption" class="live-caption">Jarvis sizi dinlemek için onay bekliyor...</div>
     </div>
   </div>
 
-  <video id="userWebcam" autoplay muted playsinline></video>
-
   <script>
-    const webcamElement = document.getElementById('userWebcam');
-    const aiAvatar = document.getElementById('aiAvatar');
-    const audioLog = document.getElementById('audioLog');
-    const aiSpeech = document.getElementById('aiSpeech');
+    const webcamVideo = document.getElementById('webcamVideo');
+    const statusBadge = document.getElementById('statusBadge');
+    const visualStatus = document.getElementById('visualStatus');
+    const audioStatus = document.getElementById('audioStatus');
+    const emotionStatus = document.getElementById('emotionStatus');
+    const chatBox = document.getElementById('chatBox');
+    const liveCaption = document.getElementById('liveCaption');
 
-    // 1. Kamera Erişimi Başlatma
-    async function setupCamera() {
+    let recognition;
+    let synth = window.speechSynthesis;
+    let userEmotion = "Nötr";
+
+    // 1. Sistem Başlatma ve İzin Alma
+    async function initJarvis() {
+      document.getElementById('startBtn').style.display = 'none';
+      liveCaption.innerText = "Sistem izinleri alınıyor...";
+
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480 },
-          audio: false
-        });
-        webcamElement.srcObject = stream;
-        
-        return new Promise((resolve) => {
-          webcamElement.onloadedmetadata = () => {
-            resolve(webcamElement);
-          };
-        });
-      } catch (error) {
-        console.error("Kamera erişimi reddedildi veya bulunamadı:", error);
-        audioLog.innerText = "[Kamera Erişilemedi]";
+        // Kamera ve Mikrofon İzinleri
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        webcamVideo.srcObject = stream;
+
+        statusBadge.classList.add('active');
+        statusBadge.innerText = "SİSTEM AKTİF // DİNLİYOR";
+        visualStatus.innerText = "Aktif (Kamera Bağlandı)";
+        audioStatus.innerText = "Aktif (Mikrofon Bağlandı)";
+
+        // Ses Tanıma ve Yüz Takibini Başlat
+        setupSpeechRecognition();
+        setupFaceTracking();
+
+        speakJarvis("Sistem aktif efendim. Kamera, mikrofon ve ses birimleriniz başarıyla bağlandı. Sizi dinliyorum, neye ihtiyacınız var?");
+
+      } catch (err) {
+        console.error(err);
+        alert("Sistemin çalışabilmesi için Kamera ve Mikrofon izinlerini vermeniz gerekmektedir.");
+        statusBadge.innerText = "ERİŞİM REDDEDİLDİ";
       }
     }
 
-    // 2. Yüz Tespiti ve Yapay Zeka Tepkisi
-    async function startFaceTracking() {
-      await setupCamera();
+    // 2. Yüz Analizi / Mimik Algılama
+    async function setupFaceTracking() {
+      try {
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+        await faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
 
-      // Face-API modellerini yüklüyoruz
-      await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
-      await faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+        setInterval(async () => {
+          const detections = await faceapi.detectSingleFace(webcamVideo, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+          if (detections && detections.expressions) {
+            const exp = detections.expressions;
+            if (exp.happy > 0.5) userEmotion = "Neşeli / Güleryüzlü";
+            else if (exp.sad > 0.5) userEmotion = "Üzgün / Düşünceli";
+            else if (exp.angry > 0.5) userEmotion = "Gergin / Odaklanmış";
+            else userEmotion = "Sakin / Nötr";
 
-      audioLog.innerText = "[SES KAYDI: Yüz ve Duygu Analizi Aktif]";
-
-      setInterval(async () => {
-        const detections = await faceapi.detectSingleFace(webcamElement, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
-
-        if (detections) {
-          const expressions = detections.expressions;
-          
-          // Yüzünün pozisyonuna göre Osman'ın bakışlarını hafifçe kaydırma (Simülasyon)
-          const box = detections.detection.box;
-          const centerX = box.x + box.width / 2;
-          const moveX = (centerX - 320) / 30; // X ekseni sapması
-          aiAvatar.style.transform = `scale(1.02) translateX(${-moveX}px)`;
-
-          // Duygu Analizi Tepkileri
-          if (expressions.sad > 0.6) {
-            audioLog.innerText = "[SES KAYDI: Neden bugün bu kadar üzgünsün falan?]";
-            aiSpeech.innerText = "Üzgün değilim, Osman. Sadece seni dinliyorum. Bize anlatmak istediğin her şeyi duymaya hazırım. Ne hissediyorsun?";
-          } else if (expressions.happy > 0.6) {
-            audioLog.innerText = "[SES KAYDI: Modun yüksek görünüyor!]";
-            aiSpeech.innerText = "Bugün enerjin harika görünüyor. Yolunda giden şeyler neler? Anlatmak ister misin?";
+            emotionStatus.innerText = userEmotion;
           }
+        }, 1000);
+      } catch (e) {
+        emotionStatus.innerText = "Analiz Modülü Beklemede";
+      }
+    }
+
+    // 3. Sürekli Ses Dinleme (Mikrofon)
+    function setupSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome kullanın.");
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'tr-TR';
+      recognition.continuous = true;
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const lastResultIndex = event.results.length - 1;
+        const text = event.results[lastResultIndex][0].transcript.trim();
+        
+        if (text.length > 0) {
+          addMessage(text, 'user');
+          processJarvisResponse(text);
         }
+      };
+
+      recognition.onend = () => {
+        // Kesintisiz Jarvis için dinlemeyi otomatik tekrar başlat
+        recognition.start();
+      };
+
+      recognition.start();
+    }
+
+    // 4. Gelişmiş Jarvis Zekası (Derin ve Kişisel Cevaplar)
+    function processJarvisResponse(input) {
+      const query = input.toLowerCase();
+      let response = "";
+
+      // Sıradan şablon cevaplar yerine detaylı analizli cevaplar
+      if (query.includes("nasılsın") || query.includes("nasıl gidiyor")) {
+        response = `Sistemlerim tam kapasite çalışıyor efendim. Görsel analiz verilerime göre şu anki modunuz ${userEmotion} olarak görünüyor. Sizin için yapabileceğim bir güncelleme veya analiz var mı?`;
+      } 
+      else if (query.includes("kimsin") || query.includes("sen nesin")) {
+        response = "Ben sizin kişisel yapay zeka asistanınız Jarvis'im. Kameralarınız, mikrofonunuz ve sistem donanımlarınız üzerinden çevrenizi anlık olarak analiz ediyor ve taleplerinize kişiselleştirilmiş çözümler üretiyorum.";
+      }
+      else if (query.includes("beni görüyor musun") || query.includes("ne görüyorsun")) {
+        response = `Evet efendim, kamera sensörlerim üzerinden sizi net bir şekilde izliyorum. Şu anki mimiklerinizden durumunuzun ${userEmotion} olduğunu tespit ettim. Çevrenizde ters giden bir durum bulunmuyor.`;
+      }
+      else if (query.includes("saat") || query.includes("zaman")) {
+        const now = new Date();
+        response = `Şu an saat tam ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}. Zaman planlamalarınızı gözden geçirmemi ister misiniz?`;
+      }
+      else if (query.includes("üzgün") || query.includes("yorgun")) {
+        response = "Kamera verilerim de yorgunluğunuzu doğrular nitelikte efendim. Zihinsel yükünüzü hafifletmek için rutin işleri devralabilir veya sizin için sakinleştirici bir mod başlatabilirim.";
+      }
+      else {
+        // Genel / Karmaşık Sorular için Akıllı Kurgu
+        response = `"${input}" konusundaki talebinizi analiz ettim. Bu durum, mevcut verilerimiz doğrultusunda birden fazla açıdan ele alınabilir. Ayrıntılı bir rapor hazırlamamı veya bu konuda derinlemesine bir araştırma başlatmamı ister misiniz efendim?`;
+      }
+
+      setTimeout(() => {
+        addMessage(response, 'jarvis');
+        speakJarvis(response);
       }, 500);
     }
 
-    // Sayfa Yüklendiğinde Başlat
-    window.addEventListener('DOMContentLoaded', () => {
-      startFaceTracking();
-    });
+    // 5. Ekran Mesaj Logu
+    function addMessage(text, sender) {
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', sender);
+      msgDiv.innerText = (sender === 'user' ? 'SİZ: ' : 'JARVIS: ') + text;
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      liveCaption.innerText = sender === 'user' ? `Algılandı: "${text}"` : `Jarvis Yanıtlıyor...`;
+    }
+
+    // 6. Sesli Yanıt Motoru (Text-To-Speech)
+    function speakJarvis(text) {
+      if (synth.speaking) synth.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'tr-TR';
+      utterance.rate = 1.0; // Konuşma hızı
+      utterance.pitch = 0.9; // Jarvis tarzı biraz daha toks/derin ses
+
+      synth.speak(utterance);
+    }
   </script>
 </body>
 </html>
