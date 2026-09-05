@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Osman (Yapay Zeka) - Canlı Etkileşim Simulatorü</title>
+  
+  <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: #0d0d0d;
+      color: #ffffff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Ana Video ve Yapay Zeka Çerçevesi */
+    .ai-container {
+      position: relative;
+      width: 1000px;
+      height: 562px;
+      background-color: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.8);
+      border: 1px solid #333;
+    }
+
+    /* Yapay Zeka Karakter Görseli (Görselinizdeki Osman) */
+    .ai-avatar {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(0.95);
+      transition: transform 0.1s ease;
+    }
+
+    /* Kamera / REC Katmanı */
+    .rec-indicator {
+      position: absolute;
+      top: 20px;
+      right: 25px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: bold;
+      color: #ff3b30;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .rec-dot {
+      width: 10px;
+      height: 10px;
+      background-color: #ff3b30;
+      border-radius: 50%;
+      animation: blink 1s infinite alternate;
+    }
+
+    @keyframes blink {
+      from { opacity: 1; }
+      to { opacity: 0.2; }
+    }
+
+    /* Sol Üst Başlık */
+    .header-title {
+      position: absolute;
+      top: 20px;
+      left: 25px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 500;
+      color: #e5e5e5;
+    }
+
+    .brain-icon {
+      width: 24px;
+      height: 24px;
+      fill: #8e8e93;
+    }
+
+    /* Alt Yazı & Ses Kaydı Alanı */
+    .subtitles-container {
+      position: absolute;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .audio-log {
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 16px;
+      border-radius: 20px;
+      display: inline-block;
+      margin: 0 auto;
+      font-size: 15px;
+      color: #d1d1d6;
+      backdrop-filter: blur(4px);
+    }
+
+    .ai-speech {
+      font-size: 20px;
+      font-weight: 500;
+      color: #ffffff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.9);
+      line-height: 1.4;
+    }
+
+    /* Gizli Web Cam (Göz Takibi İçin Arka Planda Çalışır) */
+    #userWebcam {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
+
+    /* UI Çerçeve Çizgileri */
+    .frame-corner {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .top-left { top: 15px; left: 15px; border-right: none; border-bottom: none; }
+    .bottom-right { bottom: 15px; right: 15px; border-left: none; border-top: none; }
+  </style>
+</head>
+<body>
+
+  <div class="ai-container">
+    <div class="frame-corner top-left"></div>
+    <div class="frame-corner bottom-right"></div>
+
+    <div class="header-title">
+      <svg class="brain-icon" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.57 10.57 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9zm0 15c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/></svg>
+      Osman (Yapay Zeka)
+    </div>
+
+    <div class="rec-indicator">
+      <div class="rec-dot"></div> REC
+    </div>
+
+    <img id="aiAvatar" class="ai-avatar" src="watermarked_img_13500142883147034392.png" alt="Osman AI">
+
+    <div class="subtitles-container">
+      <div id="audioLog" class="audio-log">[SES KAYDI: Dinleniyor...]</div>
+      <div id="aiSpeech" class="ai-speech">
+        Seni dinliyorum. Bize anlatmak istediğin her şeyi duymaya hazırım. Ne hissediyorsun?
+      </div>
+    </div>
+  </div>
+
+  <video id="userWebcam" autoplay muted playsinline></video>
+
+  <script>
+    const webcamElement = document.getElementById('userWebcam');
+    const aiAvatar = document.getElementById('aiAvatar');
+    const audioLog = document.getElementById('audioLog');
+    const aiSpeech = document.getElementById('aiSpeech');
+
+    // 1. Kamera Erişimi Başlatma
+    async function setupCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480 },
+          audio: false
+        });
+        webcamElement.srcObject = stream;
+        
+        return new Promise((resolve) => {
+          webcamElement.onloadedmetadata = () => {
+            resolve(webcamElement);
+          };
+        });
+      } catch (error) {
+        console.error("Kamera erişimi reddedildi veya bulunamadı:", error);
+        audioLog.innerText = "[Kamera Erişilemedi]";
+      }
+    }
+
+    // 2. Yüz Tespiti ve Yapay Zeka Tepkisi
+    async function startFaceTracking() {
+      await setupCamera();
+
+      // Face-API modellerini yüklüyoruz
+      await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+      await faceapi.nets.faceExpressionNet.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
+
+      audioLog.innerText = "[SES KAYDI: Yüz ve Duygu Analizi Aktif]";
+
+      setInterval(async () => {
+        const detections = await faceapi.detectSingleFace(webcamElement, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
+
+        if (detections) {
+          const expressions = detections.expressions;
+          
+          // Yüzünün pozisyonuna göre Osman'ın bakışlarını hafifçe kaydırma (Simülasyon)
+          const box = detections.detection.box;
+          const centerX = box.x + box.width / 2;
+          const moveX = (centerX - 320) / 30; // X ekseni sapması
+          aiAvatar.style.transform = `scale(1.02) translateX(${-moveX}px)`;
+
+          // Duygu Analizi Tepkileri
+          if (expressions.sad > 0.6) {
+            audioLog.innerText = "[SES KAYDI: Neden bugün bu kadar üzgünsün falan?]";
+            aiSpeech.innerText = "Üzgün değilim, Osman. Sadece seni dinliyorum. Bize anlatmak istediğin her şeyi duymaya hazırım. Ne hissediyorsun?";
+          } else if (expressions.happy > 0.6) {
+            audioLog.innerText = "[SES KAYDI: Modun yüksek görünüyor!]";
+            aiSpeech.innerText = "Bugün enerjin harika görünüyor. Yolunda giden şeyler neler? Anlatmak ister misin?";
+          }
+        }
+      }, 500);
+    }
+
+    // Sayfa Yüklendiğinde Başlat
+    window.addEventListener('DOMContentLoaded', () => {
+      startFaceTracking();
+    });
+  </script>
+</body>
+</html>
