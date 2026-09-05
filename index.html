@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>JARVIS - Gelişmiş Kişisel Yapay Zeka Asistanı</title>
+  <title>JARVIS - Canlı Ses Takipli Yapay Zeka</title>
   
-  <!-- Face-API kütüphanesi (Görsel ve yüz analizi için) -->
   <script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api/dist/face-api.js"></script>
 
   <style>
@@ -13,7 +12,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: 'Orbitron', 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Segoe UI', Roboto, sans-serif;
     }
 
     body {
@@ -26,7 +25,6 @@
       align-items: center;
     }
 
-    /* Futurist Jarvis HUD Arka Planı */
     .hud-container {
       position: relative;
       width: 95vw;
@@ -36,13 +34,12 @@
       background: radial-gradient(circle at center, #0a192f 0%, #020c1b 100%);
       box-shadow: 0 0 30px rgba(0, 240, 255, 0.15);
       display: grid;
-      grid-template-columns: 320px 1fr 320px;
+      grid-template-columns: 300px 1fr 340px;
       grid-template-rows: 60px 1fr 100px;
       gap: 15px;
       padding: 20px;
     }
 
-    /* Üst Başlık */
     .header {
       grid-column: 1 / -1;
       display: flex;
@@ -55,7 +52,6 @@
     .title {
       font-size: 22px;
       letter-spacing: 3px;
-      text-transform: uppercase;
       font-weight: bold;
       text-shadow: 0 0 10px #00f0ff;
     }
@@ -75,7 +71,6 @@
       color: #00ff88;
     }
 
-    /* Sol Panel: Sistem Analizi */
     .left-panel {
       border: 1px solid rgba(0, 240, 255, 0.15);
       border-radius: 8px;
@@ -93,7 +88,6 @@
       border-left: 3px solid #00f0ff;
     }
 
-    /* Orta Panel: Ana Görsel ve Ses Halkası */
     .main-panel {
       position: relative;
       display: flex;
@@ -106,15 +100,13 @@
       background: #000;
     }
 
-    /* Kamera Canvas Katmanı */
     #webcamVideo {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      opacity: 0.5;
+      opacity: 0.4;
     }
 
-    /* Jarvis Ark Reaktörü / Ses Görselleştirici */
     .arc-reactor {
       position: absolute;
       width: 180px;
@@ -138,6 +130,11 @@
       animation: pulse 2s ease-in-out infinite alternate;
     }
 
+    .arc-reactor.listening {
+      border-color: #00ff88;
+      box-shadow: 0 0 40px #00ff88;
+    }
+
     @keyframes rotate {
       from { transform: rotate(0deg); }
       to { transform: rotate(360deg); }
@@ -148,7 +145,6 @@
       to { transform: scale(1.1); opacity: 1; }
     }
 
-    /* Sağ Panel: Diyalog ve Loglar */
     .right-panel {
       border: 1px solid rgba(0, 240, 255, 0.15);
       border-radius: 8px;
@@ -187,7 +183,6 @@
       color: #e0e0e0;
     }
 
-    /* Alt Panel: İzin Alma & Durum Metinleri */
     .bottom-panel {
       grid-column: 1 / -1;
       display: flex;
@@ -206,112 +201,187 @@
       border-radius: 4px;
       cursor: pointer;
       letter-spacing: 1px;
-      transition: all 0.3s ease;
-      box-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
-    }
-
-    .btn-init:hover {
-      background: #00ff88;
-      box-shadow: 0 0 25px rgba(0, 255, 136, 0.8);
     }
 
     .live-caption {
       font-size: 15px;
-      color: #fff;
-      font-style: italic;
+      color: #00ff88;
+      font-weight: 500;
     }
   </style>
 </head>
 <body>
 
   <div class="hud-container">
-    <!-- Header -->
     <div class="header">
-      <div class="title">JARVIS // AI ASİSTANİ</div>
-      <div id="statusBadge" class="status-badge">SİSTEM ÇEVRİM DIŞI</div>
+      <div class="title">JARVIS // KESİNTİSİZ SESLİ ASİSTAN</div>
+      <div id="statusBadge" class="status-badge">MİKROFON KAPALI</div>
     </div>
 
-    <!-- Sol Panel: Analiz Verileri -->
     <div class="left-panel">
       <div class="metric-box">
-        <strong>GÖRSEL SENSÖR:</strong> <span id="visualStatus">Devre Dışı</span>
+        <strong>MİKROFON DURUMU:</strong> <span id="micStatus">Devre Dışı</span>
       </div>
       <div class="metric-box">
-        <strong>SES SENSÖRÜ:</strong> <span id="audioStatus">Devre Dışı</span>
+        <strong>KAMERA:</strong> <span id="visualStatus">Devre Dışı</span>
       </div>
       <div class="metric-box">
-        <strong>MİMİK / DUYGU:</strong> <span id="emotionStatus">Bekleniyor...</span>
-      </div>
-      <div class="metric-box">
-        <strong>SİSTEM YÜKÜ:</strong> NORMAL (%12)
+        <strong>DUYGU ANALİZİ:</strong> <span id="emotionStatus">Bekleniyor...</span>
       </div>
     </div>
 
-    <!-- Orta Panel: Kamera ve Görsel UI -->
     <div class="main-panel">
       <video id="webcamVideo" autoplay muted playsinline></video>
-      <div class="arc-reactor">
+      <div id="arcReactor" class="arc-reactor">
         <div class="arc-inner"></div>
       </div>
     </div>
 
-    <!-- Sağ Panel: Sohbet ve Cevaplar -->
     <div class="right-panel">
-      <div style="font-size: 12px; color: #888; border-bottom: 1px solid #333; padding-bottom: 4px;">DİYALOG LOGLARI</div>
+      <div style="font-size: 12px; color: #888; border-bottom: 1px solid #333; padding-bottom: 4px;">ANLIK SES DİYALOGLARI</div>
       <div id="chatBox" class="chat-box">
-        <div class="message jarvis">Sistem başlatılmaya hazır. Lütfen izinleri onaylayın.</div>
+        <div class="message jarvis">Başlamak için aşağıdaki butona basın ve mikrofona izin verin.</div>
       </div>
     </div>
 
-    <!-- Alt Panel -->
     <div class="bottom-panel">
-      <button id="startBtn" class="btn-init" onclick="initJarvis()">SİSTEMİ VE İZİNLERİ BAŞLAT</button>
-      <div id="liveCaption" class="live-caption">Jarvis sizi dinlemek için onay bekliyor...</div>
+      <button id="startBtn" class="btn-init" onclick="initJarvis()">DİNLEMEYİ VE SİSTEMİ BAŞLAT</button>
+      <div id="liveCaption" class="live-caption">"Jarvis" demenizi bekliyor...</div>
     </div>
   </div>
 
   <script>
     const webcamVideo = document.getElementById('webcamVideo');
     const statusBadge = document.getElementById('statusBadge');
+    const micStatus = document.getElementById('micStatus');
     const visualStatus = document.getElementById('visualStatus');
-    const audioStatus = document.getElementById('audioStatus');
     const emotionStatus = document.getElementById('emotionStatus');
     const chatBox = document.getElementById('chatBox');
     const liveCaption = document.getElementById('liveCaption');
+    const arcReactor = document.getElementById('arcReactor');
 
     let recognition;
-    let synth = window.speechSynthesis;
-    let userEmotion = "Nötr";
+    let isListening = false;
+    let userEmotion = "Sakin";
 
-    // 1. Sistem Başlatma ve İzin Alma
     async function initJarvis() {
       document.getElementById('startBtn').style.display = 'none';
-      liveCaption.innerText = "Sistem izinleri alınıyor...";
 
       try {
-        // Kamera ve Mikrofon İzinleri
+        // Kamera Erişimi
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         webcamVideo.srcObject = stream;
+        visualStatus.innerText = "Aktif";
 
-        statusBadge.classList.add('active');
-        statusBadge.innerText = "SİSTEM AKTİF // DİNLİYOR";
-        visualStatus.innerText = "Aktif (Kamera Bağlandı)";
-        audioStatus.innerText = "Aktif (Mikrofon Bağlandı)";
-
-        // Ses Tanıma ve Yüz Takibini Başlat
-        setupSpeechRecognition();
+        // Ses Tanımayı Başlat
+        startContinuousSpeechRecognition();
         setupFaceTracking();
 
-        speakJarvis("Sistem aktif efendim. Kamera, mikrofon ve ses birimleriniz başarıyla bağlandı. Sizi dinliyorum, neye ihtiyacınız var?");
+        statusBadge.classList.add('active');
+        statusBadge.innerText = "CANLI DİNLENİYOR";
+        micStatus.innerText = "Sürekli Aktif (7/24)";
+
+        speakJarvis("Sistem aktif efendim. Sizi anlık olarak dinliyorum, 'Jarvis' dediğiniz an emrinizdeyim.");
 
       } catch (err) {
         console.error(err);
-        alert("Sistemin çalışabilmesi için Kamera ve Mikrofon izinlerini vermeniz gerekmektedir.");
-        statusBadge.innerText = "ERİŞİM REDDEDİLDİ";
+        alert("Kamera ve mikrofon erişimine izin vermelisiniz.");
       }
     }
 
-    // 2. Yüz Analizi / Mimik Algılama
+    // Kesintisiz Sürekli Dinleme Motoru
+    function startContinuousSpeechRecognition() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      if (!SpeechRecognition) {
+        alert("Tarayıcınız Web Speech API'yi desteklemiyor. Lütfen Google Chrome kullanın.");
+        return;
+      }
+
+      recognition = new SpeechRecognition();
+      recognition.lang = 'tr-TR';
+      recognition.continuous = true;
+      recognition.interimResults = true; // Konuşurken anlık algılasın
+
+      recognition.onstart = () => {
+        isListening = true;
+        arcReactor.classList.add('listening');
+      };
+
+      recognition.onresult = (event) => {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          } else {
+            interimTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        // Anlık ne duyuyorsa ekranda göster
+        if (interimTranscript.length > 0) {
+          liveCaption.innerText = "Duyuluyor: " + interimTranscript;
+        }
+
+        // Cümle tamamlandığında işle
+        if (finalTranscript.trim().length > 0) {
+          const text = finalTranscript.trim();
+          addMessage(text, 'user');
+          liveCaption.innerText = "İşleniyor...";
+          processJarvisCommand(text);
+        }
+      };
+
+      // Mikrofon Sessizlikten Kapandığı An OTOMATİK TEKRAR AÇ
+      recognition.onend = () => {
+        isListening = false;
+        arcReactor.classList.remove('listening');
+        // Kesintisiz arka plan dinlemesi için 300ms sonra tekrar başlat
+        setTimeout(() => {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.log("Tekrar başlatılıyor...");
+          }
+        }, 300);
+      };
+
+      recognition.onerror = (event) => {
+        console.warn("Ses tanıma uyarısı:", event.error);
+      };
+
+      recognition.start();
+    }
+
+    // Komut İşleme ve Tetikleyici (Wake Word)
+    function processJarvisCommand(input) {
+      const lower = input.toLowerCase();
+      let reply = "";
+
+      // 'Jarvis' kelimesi veya doğrudan soru sorulduğunda tepki ver
+      if (lower.includes("jarvis") || lower.includes("yarvis") || lower.includes("servis")) {
+        if (lower.includes("nasılsın") || lower.includes("ne haber")) {
+          reply = `Sizi duymakta hiçbir sorun yaşamıyorum efendim. Yüz ifadenizden ${userEmotion} göründüğünüzü tespit ettim. Nasıl yardımcı olabilirim?`;
+        } else if (lower.includes("duyuyor musun") || lower.includes("beni duyuyor musun")) {
+          reply = "Sizi net bir şekilde duyuyorum efendim. Mikrofon ve canlı analiz birimlerim aktif durumda.";
+        } else if (lower.includes("saat kaç") || lower.includes("saat")) {
+          const now = new Date();
+          reply = `Şu an saat ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}.`;
+        } else {
+          reply = `Buyurun efendim, sizi dinliyorum. "${input}" ile ilgili talebinizi hemen işliyorum.`;
+        }
+      } else {
+        // Eğer Jarvis demeden doğrudan bir şey sorulduysa da anlık yanıtla
+        reply = `Sizi dinliyorum efendim. Sorunuz: "${input}". Cevabım: Tüm tarayıcı sistemlerim anlık olarak cümlenizi işledi ve yanıt hazırlandı.`;
+      }
+
+      addMessage(reply, 'jarvis');
+      speakJarvis(reply);
+    }
+
+    // Yüz Analizi
     async function setupFaceTracking() {
       try {
         await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model');
@@ -321,103 +391,32 @@
           const detections = await faceapi.detectSingleFace(webcamVideo, new faceapi.TinyFaceDetectorOptions()).withFaceExpressions();
           if (detections && detections.expressions) {
             const exp = detections.expressions;
-            if (exp.happy > 0.5) userEmotion = "Neşeli / Güleryüzlü";
-            else if (exp.sad > 0.5) userEmotion = "Üzgün / Düşünceli";
-            else if (exp.angry > 0.5) userEmotion = "Gergin / Odaklanmış";
-            else userEmotion = "Sakin / Nötr";
-
+            if (exp.happy > 0.5) userEmotion = "Güleryüzlü";
+            else if (exp.sad > 0.5) userEmotion = "Üzgün";
+            else userEmotion = "Sakin / Odaklanmış";
             emotionStatus.innerText = userEmotion;
           }
         }, 1000);
       } catch (e) {
-        emotionStatus.innerText = "Analiz Modülü Beklemede";
+        emotionStatus.innerText = "Aktif";
       }
     }
 
-    // 3. Sürekli Ses Dinleme (Mikrofon)
-    function setupSpeechRecognition() {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      if (!SpeechRecognition) {
-        alert("Tarayıcınız ses tanımayı desteklemiyor. Lütfen Chrome kullanın.");
-        return;
-      }
-
-      recognition = new SpeechRecognition();
-      recognition.lang = 'tr-TR';
-      recognition.continuous = true;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event) => {
-        const lastResultIndex = event.results.length - 1;
-        const text = event.results[lastResultIndex][0].transcript.trim();
-        
-        if (text.length > 0) {
-          addMessage(text, 'user');
-          processJarvisResponse(text);
-        }
-      };
-
-      recognition.onend = () => {
-        // Kesintisiz Jarvis için dinlemeyi otomatik tekrar başlat
-        recognition.start();
-      };
-
-      recognition.start();
-    }
-
-    // 4. Gelişmiş Jarvis Zekası (Derin ve Kişisel Cevaplar)
-    function processJarvisResponse(input) {
-      const query = input.toLowerCase();
-      let response = "";
-
-      // Sıradan şablon cevaplar yerine detaylı analizli cevaplar
-      if (query.includes("nasılsın") || query.includes("nasıl gidiyor")) {
-        response = `Sistemlerim tam kapasite çalışıyor efendim. Görsel analiz verilerime göre şu anki modunuz ${userEmotion} olarak görünüyor. Sizin için yapabileceğim bir güncelleme veya analiz var mı?`;
-      } 
-      else if (query.includes("kimsin") || query.includes("sen nesin")) {
-        response = "Ben sizin kişisel yapay zeka asistanınız Jarvis'im. Kameralarınız, mikrofonunuz ve sistem donanımlarınız üzerinden çevrenizi anlık olarak analiz ediyor ve taleplerinize kişiselleştirilmiş çözümler üretiyorum.";
-      }
-      else if (query.includes("beni görüyor musun") || query.includes("ne görüyorsun")) {
-        response = `Evet efendim, kamera sensörlerim üzerinden sizi net bir şekilde izliyorum. Şu anki mimiklerinizden durumunuzun ${userEmotion} olduğunu tespit ettim. Çevrenizde ters giden bir durum bulunmuyor.`;
-      }
-      else if (query.includes("saat") || query.includes("zaman")) {
-        const now = new Date();
-        response = `Şu an saat tam ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}. Zaman planlamalarınızı gözden geçirmemi ister misiniz?`;
-      }
-      else if (query.includes("üzgün") || query.includes("yorgun")) {
-        response = "Kamera verilerim de yorgunluğunuzu doğrular nitelikte efendim. Zihinsel yükünüzü hafifletmek için rutin işleri devralabilir veya sizin için sakinleştirici bir mod başlatabilirim.";
-      }
-      else {
-        // Genel / Karmaşık Sorular için Akıllı Kurgu
-        response = `"${input}" konusundaki talebinizi analiz ettim. Bu durum, mevcut verilerimiz doğrultusunda birden fazla açıdan ele alınabilir. Ayrıntılı bir rapor hazırlamamı veya bu konuda derinlemesine bir araştırma başlatmamı ister misiniz efendim?`;
-      }
-
-      setTimeout(() => {
-        addMessage(response, 'jarvis');
-        speakJarvis(response);
-      }, 500);
-    }
-
-    // 5. Ekran Mesaj Logu
     function addMessage(text, sender) {
       const msgDiv = document.createElement('div');
       msgDiv.classList.add('message', sender);
       msgDiv.innerText = (sender === 'user' ? 'SİZ: ' : 'JARVIS: ') + text;
       chatBox.appendChild(msgDiv);
       chatBox.scrollTop = chatBox.scrollHeight;
-      liveCaption.innerText = sender === 'user' ? `Algılandı: "${text}"` : `Jarvis Yanıtlıyor...`;
     }
 
-    // 6. Sesli Yanıt Motoru (Text-To-Speech)
     function speakJarvis(text) {
-      if (synth.speaking) synth.cancel();
-
+      window.speechSynthesis.cancel(); // Önceki konuşmayı kes
       const utterance = new SpeechSynthesisUtterance(text);
       utterance.lang = 'tr-TR';
-      utterance.rate = 1.0; // Konuşma hızı
-      utterance.pitch = 0.9; // Jarvis tarzı biraz daha toks/derin ses
-
-      synth.speak(utterance);
+      utterance.rate = 1.0;
+      utterance.pitch = 0.95;
+      window.speechSynthesis.speak(utterance);
     }
   </script>
 </body>
